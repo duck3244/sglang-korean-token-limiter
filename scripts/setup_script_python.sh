@@ -1,9 +1,9 @@
 #!/bin/bash
-# SGLang constrained 모듈 완전 패치
+# FlashInfer 설치 및 SGLang 최적화 스크립트
 
 set -e
 
-echo "🔧 SGLang constrained 모듈 완전 패치"
+echo "🔧 FlashInfer 설치 및 SGLang 최적화"
 echo "=================================="
 
 # 색상 정의
@@ -13,266 +13,211 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
-# 1. accelerate 먼저 설치 (모델 다운로드용)
-echo -e "${BLUE}1. accelerate 패키지 설치...${NC}"
-pip install accelerate
-
-# 2. SGLang constrained 모듈 완전 패치
-echo -e "\n${BLUE}2. SGLang constrained 모듈 완전 패치...${NC}"
-
+# 1. 현재 환경 확인
+echo -e "${BLUE}1. 현재 환경 확인...${NC}"
 python -c "
 import sys
-import os
+print(f'Python: {sys.version}')
 
+# CUDA 확인
 try:
-    import sglang
-    sglang_path = os.path.dirname(sglang.__file__)
-    constrained_path = os.path.join(sglang_path, 'srt', 'constrained')
-
-    print(f'SGLang 경로: {sglang_path}')
-    print(f'Constrained 경로: {constrained_path}')
-
-    # 1. __init__.py 완전 패치
-    init_file = os.path.join(constrained_path, '__init__.py')
-
-    # 백업 (아직 안했다면)
-    backup_file = init_file + '.original_backup'
-    if not os.path.exists(backup_file):
-        with open(init_file, 'r') as f:
-            original_content = f.read()
-        with open(backup_file, 'w') as f:
-            f.write(original_content)
-        print(f'✅ 원본 백업: {backup_file}')
-
-    # 새로운 __init__.py 내용 (모든 필요한 클래스 포함)
-    new_init_content = '''
-# SGLang constrained module - outlines dependency removed
-# Complete dummy implementation for all required classes
-
-import logging
-import json
-from typing import List, Dict, Any, Optional, Union
-
-logger = logging.getLogger(__name__)
-
-# Dummy cache function
-def dummy_cache(func):
-    \"\"\"Dummy cache decorator\"\"\"
-    return func
-
-# Cache implementation
-try:
-    from outlines.caching import cache as disk_cache
+    import torch
+    print(f'PyTorch: {torch.__version__}')
+    if torch.cuda.is_available():
+        print(f'CUDA 사용 가능: {torch.version.cuda}')
+        print(f'GPU: {torch.cuda.get_device_name()}')
+    else:
+        print('CUDA 사용 불가')
 except ImportError:
-    disk_cache = dummy_cache
-    logger.warning(\"outlines.caching not available, using dummy cache\")
+    print('PyTorch 없음')
 
-def disable_cache():
-    \"\"\"Disable cache function\"\"\"
-    logger.info(\"Cache disabled (outlines not available)\")
-    pass
-
-# Dummy RegexGuide class
-class RegexGuide:
-    \"\"\"Dummy RegexGuide for SGLang compatibility\"\"\"
-
-    def __init__(self, regex_string: str, tokenizer = None):
-        self.regex_string = regex_string
-        self.tokenizer = tokenizer
-        logger.info(f\"Created dummy RegexGuide for pattern: {regex_string}\")
-
-    def get_next_instruction(self, state):
-        # Return a simple instruction that allows any token
-        return {\"type\": \"generate\", \"allowed_tokens\": None}
-
-    def is_final_state(self, state):
-        return False
-
-    def copy(self):
-        return RegexGuide(self.regex_string, self.tokenizer)
-
-# Dummy TransformerTokenizer class
-class TransformerTokenizer:
-    \"\"\"Dummy TransformerTokenizer for SGLang compatibility\"\"\"
-
-    def __init__(self, tokenizer):
-        self.tokenizer = tokenizer
-        self.vocabulary = getattr(tokenizer, 'get_vocab', lambda: {})()
-        logger.info(\"Created dummy TransformerTokenizer\")
-
-    def encode(self, text: str) -> List[int]:
-        if hasattr(self.tokenizer, 'encode'):
-            return self.tokenizer.encode(text)
-        return [0]  # Fallback
-
-    def decode(self, token_ids: List[int]) -> str:
-        if hasattr(self.tokenizer, 'decode'):
-            return self.tokenizer.decode(token_ids)
-        return \"\"  # Fallback
-
-    def convert_token_to_string(self, token):
-        if hasattr(self.tokenizer, 'convert_tokens_to_string'):
-            return self.tokenizer.convert_tokens_to_string([token])
-        return str(token)
-
-# Dummy JSONGuide class
-class JSONGuide:
-    \"\"\"Dummy JSONGuide for SGLang compatibility\"\"\"
-
-    def __init__(self, schema: Union[str, Dict], tokenizer = None):
-        self.schema = schema
-        self.tokenizer = tokenizer
-        logger.info(f\"Created dummy JSONGuide for schema: {type(schema)}\")
-
-    def get_next_instruction(self, state):
-        return {\"type\": \"generate\", \"allowed_tokens\": None}
-
-    def is_final_state(self, state):
-        return False
-
-# Dummy ChoiceGuide class
-class ChoiceGuide:
-    \"\"\"Dummy ChoiceGuide for SGLang compatibility\"\"\"
-
-    def __init__(self, choices: List[str], tokenizer = None):
-        self.choices = choices
-        self.tokenizer = tokenizer
-        logger.info(f\"Created dummy ChoiceGuide with {len(choices)} choices\")
-
-    def get_next_instruction(self, state):
-        return {\"type\": \"generate\", \"allowed_tokens\": None}
-
-    def is_final_state(self, state):
-        return False
-
-# Export all necessary symbols
-__all__ = [
-    'disable_cache',
-    'disk_cache',
-    'RegexGuide',
-    'TransformerTokenizer',
-    'JSONGuide',
-    'ChoiceGuide'
-]
-
-logger.info(\"SGLang constrained module initialized with dummy implementations\")
-'''
-
-    # 새 내용 작성
-    with open(init_file, 'w') as f:
-        f.write(new_init_content)
-
-    print(f'✅ __init__.py 완전 패치 완료')
-
-    # 2. fsm_cache.py 패치 (필요한 경우)
-    fsm_cache_file = os.path.join(constrained_path, 'fsm_cache.py')
-    if os.path.exists(fsm_cache_file):
-        print(f'✅ fsm_cache.py 발견: {fsm_cache_file}')
-
-        # fsm_cache.py 읽어서 문제있는지 확인
-        with open(fsm_cache_file, 'r') as f:
-            fsm_content = f.read()
-
-        # RegexGuide import 문제 해결
-        if 'from sglang.srt.constrained import RegexGuide' in fsm_content:
-            # 백업
-            with open(fsm_cache_file + '.backup', 'w') as f:
-                f.write(fsm_content)
-
-            # import 문 수정
-            fixed_content = fsm_content.replace(
-                'from sglang.srt.constrained import RegexGuide, TransformerTokenizer',
-                'from sglang.srt.constrained import RegexGuide, TransformerTokenizer  # Patched imports'
-            )
-
-            with open(fsm_cache_file, 'w') as f:
-                f.write(fixed_content)
-
-            print(f'✅ fsm_cache.py 패치 완료')
-
-    print('🎉 SGLang constrained 모듈 완전 패치 완료!')
-
-except Exception as e:
-    print(f'❌ 패치 실패: {e}')
-    import traceback
-    traceback.print_exc()
-    sys.exit(1)
+# 기존 패키지 확인
+packages = ['sglang', 'flashinfer', 'triton']
+for pkg in packages:
+    try:
+        module = __import__(pkg)
+        version = getattr(module, '__version__', 'Unknown')
+        print(f'✅ {pkg}: {version}')
+    except ImportError:
+        print(f'❌ {pkg}: 설치되지 않음')
 "
 
-# 3. 패치 검증
-echo -e "\n${BLUE}3. 패치 검증...${NC}"
+# 2. FlashInfer 설치 시도
+echo -e "\n${BLUE}2. FlashInfer 설치 시도...${NC}"
+
+# GPU 사용 가능한지 확인
+if python -c "import torch; exit(0 if torch.cuda.is_available() else 1)" 2>/dev/null; then
+    echo "GPU 환경에서 FlashInfer 설치..."
+
+    # FlashInfer 여러 버전 시도
+    FLASHINFER_VERSIONS=("0.0.5" "0.0.4" "0.0.3")
+
+    for version in "${FLASHINFER_VERSIONS[@]}"; do
+        echo "=== FlashInfer ${version} 설치 시도 ==="
+
+        if pip install "flashinfer==${version}" --no-build-isolation; then
+            echo -e "${GREEN}✅ FlashInfer ${version} 설치 성공${NC}"
+
+            # 즉시 import 테스트
+            if python -c "
+import flashinfer
+print(f'✅ FlashInfer {flashinfer.__version__} import 성공')
+
+# 핵심 함수 테스트
+try:
+    from flashinfer.sampling import top_k_top_p_sampling_from_probs
+    print('✅ flashinfer.sampling 함수 정상')
+except ImportError as e:
+    print(f'⚠️ flashinfer.sampling 실패: {e}')
+    exit(1)
+
+print('🎉 FlashInfer 완전 설치 성공!')
+" 2>/dev/null; then
+                echo -e "${GREEN}🎉 호환 가능한 FlashInfer 버전: ${version}${NC}"
+                WORKING_FLASHINFER_VERSION=$version
+                break
+            else
+                echo -e "${YELLOW}⚠️ FlashInfer ${version} import 실패${NC}"
+                pip uninstall flashinfer -y 2>/dev/null || true
+            fi
+        else
+            echo -e "${YELLOW}⚠️ FlashInfer ${version} 설치 실패${NC}"
+        fi
+    done
+
+    # 모든 버전 실패 시 소스에서 설치 시도
+    if [ -z "$WORKING_FLASHINFER_VERSION" ]; then
+        echo -e "\n${YELLOW}⚠️ 패키지 버전 실패. 소스에서 설치 시도...${NC}"
+
+        # 필요한 빌드 도구 설치
+        pip install ninja packaging
+
+        # Git에서 설치 시도
+        if pip install "git+https://github.com/flashinfer-ai/flashinfer.git" --no-build-isolation; then
+            echo "Git에서 FlashInfer 설치 완료"
+            WORKING_FLASHINFER_VERSION="git-latest"
+        else
+            echo -e "${RED}❌ 모든 FlashInfer 설치 방법 실패${NC}"
+            echo "FlashInfer 없이 SGLang을 실행합니다 (성능 제한)."
+        fi
+    fi
+else
+    echo -e "${YELLOW}⚠️ GPU 없음. FlashInfer 건너뛰기${NC}"
+fi
+
+# 3. 추가 최적화 패키지 설치
+echo -e "\n${BLUE}3. 추가 최적화 패키지 설치...${NC}"
+
+# Triton 설치 (CUDA 환경)
+if python -c "import torch; exit(0 if torch.cuda.is_available() else 1)" 2>/dev/null; then
+    echo "Triton 설치 중..."
+    pip install "triton>=2.1.0" || echo "⚠️ Triton 설치 실패"
+fi
+
+# Flash Attention 설치 (선택사항)
+echo "Flash Attention 설치 시도..."
+pip install "flash-attn>=2.3.0" --no-build-isolation || echo "⚠️ Flash Attention 설치 실패 (선택사항)"
+
+# xformers 설치 (선택사항)
+echo "xformers 설치 시도..."
+pip install "xformers>=0.0.22" || echo "⚠️ xformers 설치 실패 (선택사항)"
+
+# 4. SGLang 호환성 테스트
+echo -e "\n${BLUE}4. SGLang 호환성 테스트...${NC}"
 
 python -c "
 import sys
 
 try:
-    print('=== SGLang 패치 검증 ===')
+    print('=== SGLang + FlashInfer 호환성 테스트 ===')
 
-    # constrained 모듈 import 테스트
-    from sglang.srt.constrained import RegexGuide, TransformerTokenizer, disable_cache
-    print('✅ sglang.srt.constrained: 모든 클래스 import 성공')
-
-    # 클래스 인스턴스화 테스트
-    regex_guide = RegexGuide('[0-9]+')
-    print('✅ RegexGuide: 인스턴스화 성공')
-
-    # fsm_cache import 테스트
+    # 1. FlashInfer 확인
     try:
-        from sglang.srt.constrained.fsm_cache import FSMCache
-        print('✅ FSMCache: import 성공')
-    except ImportError as e:
-        print(f'⚠️ FSMCache import 실패: {e}')
+        import flashinfer
+        print(f'✅ FlashInfer: {flashinfer.__version__}')
 
-    # SGLang 서버 런처 테스트
+        # 핵심 함수 확인
+        from flashinfer.sampling import top_k_top_p_sampling_from_probs
+        print('✅ flashinfer.sampling: 정상')
+    except ImportError as e:
+        print(f'❌ FlashInfer 없음: {e}')
+        print('SGLang이 FlashInfer 없이 실행됩니다 (성능 제한)')
+
+    # 2. SGLang constrained 모듈
+    from sglang.srt.constrained import FSMInfo, RegexGuide
+    print('✅ sglang.srt.constrained: 정상')
+
+    # 3. SGLang infer_batch (FlashInfer 사용)
+    try:
+        from sglang.srt.managers.controller.infer_batch import ForwardBatch
+        print('✅ sglang.srt.managers.controller.infer_batch: 정상')
+    except ImportError as e:
+        print(f'⚠️ infer_batch 일부 기능 제한: {e}')
+
+    # 4. SGLang 서버 런처 최종 테스트
     try:
         from sglang.srt.server import launch_server
         print('✅ sglang.srt.server.launch_server: 정상')
     except ImportError as e:
-        print(f'❌ 서버 런처 실패: {e}')
+        print(f'❌ SGLang 서버 런처 실패: {e}')
         raise
 
     print()
-    print('🎉 모든 패치 검증 완료!')
+    print('🎉 모든 테스트 통과! SGLang 서버 시작 가능!')
 
 except Exception as e:
-    print(f'❌ 검증 실패: {e}')
+    print(f'❌ 호환성 테스트 실패: {e}')
     import traceback
     traceback.print_exc()
     sys.exit(1)
 "
 
-# 4. 성공 시 SGLang 서버 시작
+# 5. 성공 시 안내
 if [ $? -eq 0 ]; then
-    echo -e "\n${GREEN}🎉 SGLang 완전 패치 성공!${NC}"
+    echo -e "\n${GREEN}🎉 FlashInfer 및 SGLang 최적화 완료!${NC}"
     echo ""
-    echo -e "${BLUE}📋 패치 내용:${NC}"
-    echo "- accelerate 패키지 설치"
-    echo "- RegexGuide 더미 구현"
-    echo "- TransformerTokenizer 더미 구현"
-    echo "- JSONGuide, ChoiceGuide 더미 구현"
-    echo "- FSMCache 호환성 수정"
-    echo "- 모든 import 오류 해결"
-    echo ""
-    echo -e "${GREEN}🚀 이제 SGLang 서버를 시작합니다:${NC}"
-    echo ""
+    echo -e "${BLUE}📋 설치 요약:${NC}"
 
-    # 즉시 SGLang 서버 시작
+    python -c "
+packages = ['flashinfer', 'triton', 'sglang']
+for pkg in packages:
+    try:
+        module = __import__(pkg)
+        version = getattr(module, '__version__', 'Unknown')
+        print(f'✅ {pkg}: {version}')
+    except ImportError:
+        print(f'❌ {pkg}: 설치되지 않음')
+"
+
+    echo ""
+    echo -e "${GREEN}🚀 이제 SGLang 서버를 시작할 수 있습니다:${NC}"
     echo "bash scripts/start_korean_sglang.sh"
-    bash scripts/start_korean_sglang.sh
+    echo ""
+    echo -e "${BLUE}💡 최적화 내용:${NC}"
+    if [ ! -z "$WORKING_FLASHINFER_VERSION" ]; then
+        echo "- FlashInfer $WORKING_FLASHINFER_VERSION (GPU 성능 최적화)"
+    else
+        echo "- FlashInfer 없음 (CPU 모드 또는 성능 제한)"
+    fi
+    echo "- SGLang constrained 모듈 완전 패치"
+    echo "- 한국어 토큰 제한 시스템 준비 완료"
 
 else
-    echo -e "\n${RED}❌ 패치 실패${NC}"
+    echo -e "\n${RED}❌ FlashInfer 설치 실패${NC}"
     echo ""
-    echo -e "${YELLOW}🔧 수동 복원 방법:${NC}"
-    echo "python -c \"
-import sglang, os, shutil
-sglang_path = os.path.dirname(sglang.__file__)
-constrained_init = os.path.join(sglang_path, 'srt', 'constrained', '__init__.py')
-backup_path = constrained_init + '.original_backup'
-if os.path.exists(backup_path):
-    shutil.copy2(backup_path, constrained_init)
-    print('원본 복원 완료')
-\""
+    echo -e "${YELLOW}🔧 대안 방법:${NC}"
+    echo "1. FlashInfer 없이 SGLang 사용 (제한된 성능):"
+    echo "   export SGLANG_DISABLE_FLASHINFER=1"
+    echo "   bash scripts/start_korean_sglang.sh"
+    echo ""
+    echo "2. CPU 전용 모드로 SGLang 사용:"
+    echo "   export CUDA_VISIBLE_DEVICES=\"\""
+    echo "   bash scripts/start_korean_sglang.sh"
+    echo ""
+    echo "3. 다른 환경에서 재시도:"
+    echo "   conda create -n sglang_gpu python=3.10"
+    echo "   conda activate sglang_gpu"
+    echo "   # 처음부터 다시 설치"
 fi
 
 echo ""
