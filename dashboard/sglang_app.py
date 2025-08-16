@@ -191,7 +191,7 @@ def test_sglang_chat(user_key="sk-user1-korean-key-def", message="안녕하세�
                 "Authorization": f"Bearer {user_key}"
             },
             json={
-                "model": "korean-qwen",
+                "model": "korean-llama",
                 "messages": [{"role": "user", "content": message}],
                 "max_tokens": 50,
                 "stream": stream,
@@ -658,7 +658,7 @@ curl -X POST http://localhost:8080/v1/chat/completions \\
   -H "Content-Type: application/json" \\
   -H "Authorization: Bearer {test_api_key}" \\
   -d '{{
-    "model": "korean-qwen",
+    "model": "korean-llama",
     "messages": [{{"role": "user", "content": "{test_message}"}}],
     "max_tokens": {max_tokens},
     "stream": true,
@@ -1092,14 +1092,14 @@ with tab6:
         st.code("""
 # SGLang 서버 최적 설정 (RTX 4060 8GB 기준)
 python -m sglang.launch_server \\
-  --model-path Qwen/Qwen2.5-3B-Instruct \\
+  --model-path Qwen/Llama-2-Ko-7B \\
   --port 8000 \\
   --host 127.0.0.1 \\
   --tp-size 1 \\
   --mem-fraction-static 0.75 \\
   --max-running-requests 16 \\
   --max-total-tokens 8192 \\
-  --served-model-name korean-qwen \\
+  --served-model-name korean-llama \\
   --trust-remote-code \\
   --enable-torch-compile \\
   --chunked-prefill-size 4096 \\

@@ -7,14 +7,14 @@ server:
 sglang_server:
   host: "127.0.0.1"
   port: 8000
-  model_path: "Qwen/Qwen2.5-3B-Instruct"  # 한국어 지원 모델
+  model_path: "beomi/llama-2-ko-7b"  # 한국어 지원 모델
   
   # SGLang 서버 설정 (RTX 4060 8GB 최적화)
   sglang_args:
     tp_size: 1                        # Tensor parallel size (단일 GPU)
-    mem_fraction_static: 0.75         # GPU 메모리 사용률 (75%)
-    max_running_requests: 16          # 동시 처리 요청 수
-    max_total_tokens: 8192           # 최대 토큰 길이
+    mem_fraction_static: 0.8         # GPU 메모리 사용률 (75%)
+    max_running_requests: 8          # 동시 처리 요청 수
+    max_total_tokens: 4096           # 최대 토큰 길이
     schedule_policy: "lpm"            # Longest Prefix Match 스케줄링
     
     # 성능 최적화
@@ -37,7 +37,7 @@ sglang_server:
     
     # 한국어 최적화
     trust_remote_code: true          # 원격 코드 신뢰 (한국어 모델용)
-    served_model_name: "korean-qwen" # 서빙 모델명
+    served_model_name: "korean-llama" # 서빙 모델명
 
 storage:
   type: "redis"  # redis 또는 sqlite
@@ -54,7 +54,7 @@ default_limits:
 
 # 한국어 토큰 설정
 tokenizer:
-  model_name: "Qwen/Qwen2.5-3B-Instruct"
+  model_name: "beomi/llama-2-ko-7b"
   max_length: 8192               # SGLang 컨텍스트 길이
   korean_factor: 1.15            # 한국어 토큰 계산 보정값 (SGLang 최적화)
   cache_dir: "./tokenizer_cache"
@@ -105,7 +105,7 @@ security:
 models:
   # Qwen2.5 한국어 모델 (권장)
   qwen_3b:
-    model_path: "Qwen/Qwen2.5-3B-Instruct"
+    model_path: "beomi/llama-2-ko-7b"
     max_model_len: 8192
     mem_fraction: 0.7
     description: "경량 고성능 한국어 모델"

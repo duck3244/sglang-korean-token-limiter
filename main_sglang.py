@@ -238,7 +238,7 @@ async def get_sglang_models():
         logger.warning(f"⚠️ SGLang 모델 정보 조회 실패: {e}")
 
     # 기본값 설정
-    ACTUAL_MODEL_NAME = "korean-qwen"
+    ACTUAL_MODEL_NAME = "korean-llama"
     return ACTUAL_MODEL_NAME
 
 
@@ -256,7 +256,7 @@ def extract_user_id(request: Request) -> str:
     return "guest"
 
 
-def convert_to_sglang_format(messages: list, model: str = "korean-qwen") -> dict:
+def convert_to_sglang_format(messages: list, model: str = "korean-llama") -> dict:
     """채팅 메시지를 SGLang 형태로 변환"""
     # SGLang은 OpenAI 호환 형식을 직접 지원
     return {
@@ -372,7 +372,7 @@ async def stream_sglang_response(messages: list, model: str, max_tokens: int = 5
                                 "id": f"chatcmpl-{int(time.time())}",
                                 "object": "chat.completion.chunk",
                                 "created": int(time.time()),
-                                "model": "korean-qwen",
+                                "model": "korean-llama",
                                 "choices": [{
                                     "index": 0,
                                     "delta": chunk_data.get("choices", [{}])[0].get("delta", {}),
@@ -447,7 +447,7 @@ async def chat_completions_proxy(request: Request):
         
         # OpenAI 호환 형식으로 응답 (SGLang이 이미 호환 형식 제공)
         if 'model' not in result:
-            result['model'] = "korean-qwen"
+            result['model'] = "korean-llama"
         
         logger.info(f"✅ SGLang 응답 생성 완료: 사용자={user_id}")
         return JSONResponse(content=result)
@@ -495,7 +495,7 @@ async def completions_proxy(request: Request):
         if sglang_response.status_code == 200:
             result = sglang_response.json()
             if 'model' not in result:
-                result['model'] = "korean-qwen"
+                result['model'] = "korean-llama"
             return JSONResponse(content=result)
         else:
             return JSONResponse(
@@ -547,7 +547,7 @@ async def health_check():
     return {
         "status": "healthy",
         "sglang_server": "connected" if sglang_status else "disconnected",
-        "model": "korean-qwen",
+        "model": "korean-llama",
         "actual_sglang_model": actual_model,
         "runtime_info": runtime_info,
         "supports_korean": True,
@@ -566,7 +566,7 @@ async def list_models():
         return {
             "data": [
                 {
-                    "id": "korean-qwen",
+                    "id": "korean-llama",
                     "object": "model",
                     "created": int(time.time()),
                     "owned_by": "korean-sglang-limiter",

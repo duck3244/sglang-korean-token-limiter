@@ -18,10 +18,10 @@ NC='\033[0m'
 mkdir -p logs pids tokenizer_cache
 
 # 기본 설정
-SGLANG_MODEL="Qwen/Qwen2.5-3B-Instruct"
+SGLANG_MODEL="microsoft/DialoGPT-medium"
 SGLANG_PORT=8000
 TOKEN_LIMITER_PORT=8080
-MAX_MEMORY_FRACTION=0.75
+MAX_MEMORY_FRACTION=0.85
 MAX_RUNNING_REQUESTS=16
 
 # 프로세스 정리
@@ -47,8 +47,8 @@ check_gpu() {
         # RTX 4060 감지 시 최적화 설정 조정
         if [[ "$GPU_NAME" == *"4060"* ]]; then
             echo -e "${PURPLE}🎮 RTX 4060 감지 - 최적화 설정 적용${NC}"
-            MAX_MEMORY_FRACTION=0.7
-            MAX_RUNNING_REQUESTS=12
+            MAX_MEMORY_FRACTION=0.8
+            MAX_RUNNING_REQUESTS=8
         fi
         
         return 0
@@ -503,14 +503,14 @@ if [ "$1" = "--help" ] || [ "$1" = "-h" ]; then
     echo "  $0 --help             # 이 도움말 표시"
     echo ""
     echo "옵션:"
-    echo "  --model MODEL         SGLang 모델 지정 (기본: Qwen/Qwen2.5-3B-Instruct)"
+    echo "  --model MODEL         SGLang 모델 지정 (기본: microsoft/DialoGPT-medium)"
     echo "  --quick               모델 다운로드 확인 건너뛰기"
     echo "  --memory-fraction F   GPU 메모리 사용률 (기본: 0.75)"
     echo "  --max-requests N      최대 동시 요청 수 (기본: 16)"
     echo "  --port PORT           SGLang 포트 (기본: 8000)"
     echo ""
     echo "환경 변수:"
-    echo "  SGLANG_MODEL          사용할 모델 (기본: Qwen/Qwen2.5-3B-Instruct)"
+    echo "  SGLANG_MODEL          사용할 모델 (기본: microsoft/DialoGPT-medium)"
     echo "  SGLANG_PORT           SGLang 서버 포트 (기본: 8000)"
     echo "  LIMITER_PORT          Token Limiter 포트 (기본: 8080)"
     echo ""
@@ -554,7 +554,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # 환경 변수 적용
-SGLANG_MODEL=${SGLANG_MODEL:-"Qwen/Qwen2.5-3B-Instruct"}
+SGLANG_MODEL=${SGLANG_MODEL:-"microsoft/DialoGPT-medium"}
 SGLANG_PORT=${SGLANG_PORT:-8000}
 TOKEN_LIMITER_PORT=${LIMITER_PORT:-8080}
 
