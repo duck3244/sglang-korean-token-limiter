@@ -1,0 +1,7 @@
+
+# SGLang 백엔드 설정
+backend: pytorch
+device: cuda
+dtype: float16
+max_batch_size: 8
+max_seq_len: 2048

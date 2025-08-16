@@ -121,7 +121,7 @@ bash scripts/start_korean_sglang.sh
 
 ```bash
 # 헬스체크
-curl http://localhost:8080/health
+
 
 # 채팅 완성 테스트
 curl -X POST http://localhost:8080/v1/chat/completions \
