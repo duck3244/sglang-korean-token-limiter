@@ -1,0 +1,195 @@
+# SGLang 기반 한국어 Token Limiter 설정
+server:
+  host: "0.0.0.0"
+  port: 8080
+  debug: false
+
+sglang_server:
+  host: "127.0.0.1"
+  port: 8000
+  model_path: "Qwen/Qwen2.5-3B-Instruct"  # 한국어 지원 모델
+  
+  # SGLang 서버 설정 (RTX 4060 8GB 최적화)
+  sglang_args:
+    tp_size: 1                        # Tensor parallel size (단일 GPU)
+    mem_fraction_static: 0.75         # GPU 메모리 사용률 (75%)
+    max_running_requests: 16          # 동시 처리 요청 수
+    max_total_tokens: 8192           # 최대 토큰 길이
+    schedule_policy: "lpm"            # Longest Prefix Match 스케줄링
+    
+    # 성능 최적화
+    enable_torch_compile: true        # Torch compile 최적화
+    disable_flashinfer: false         # FlashInfer 사용 (RTX 4060 지원)
+    chunked_prefill_size: 4096       # Chunked prefill 크기
+    enable_mixed_chunk: true          # Mixed chunk 활성화
+    
+    # KV 캐시 최적화
+    kv_cache_dtype: "fp16"           # KV 캐시 데이터 타입
+    enable_prefix_caching: true       # Prefix 캐싱 활성화
+    
+    # 메모리 최적화
+    compress_weight: false            # 가중치 압축 (정확도 우선)
+    quantization: "fp16"             # FP16 양자화
+    
+    # 배치 처리 최적화
+    max_prefill_tokens: 8192         # 최대 prefill 토큰
+    max_batch_size: 32               # 최대 배치 크기
+    
+    # 한국어 최적화
+    trust_remote_code: true          # 원격 코드 신뢰 (한국어 모델용)
+    served_model_name: "korean-qwen" # 서빙 모델명
+
+storage:
+  type: "redis"  # redis 또는 sqlite
+  redis_url: "redis://localhost:6379"
+  sqlite_path: "korean_sglang_usage.db"
+
+# SGLang 고성능 반영 기본 제한
+default_limits:
+  rpm: 40           # 분당 요청 수 (SGLang 성능 향상으로 증가)
+  tpm: 8000         # 분당 토큰 수 (한국어 토큰 특성 고려)
+  tph: 500000       # 시간당 토큰 수
+  daily: 1000000    # 일일 토큰 수 (증가)
+  cooldown_minutes: 2  # 제한 후 대기 시간 (단축)
+
+# 한국어 토큰 설정
+tokenizer:
+  model_name: "Qwen/Qwen2.5-3B-Instruct"
+  max_length: 8192               # SGLang 컨텍스트 길이
+  korean_factor: 1.15            # 한국어 토큰 계산 보정값 (SGLang 최적화)
+  cache_dir: "./tokenizer_cache"
+
+# 로깅 설정
+logging:
+  level: "INFO"
+  file: "logs/korean_sglang_limiter.log"
+  max_file_size: "10MB"
+  backup_count: 5
+  format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+
+# SGLang 모니터링 설정
+monitoring:
+  enable_metrics: true
+  metrics_port: 9090
+  health_check_interval: 15     # SGLang 빠른 응답으로 단축
+  collect_sglang_stats: true    # SGLang 내부 통계 수집
+  
+# SGLang 특화 성능 설정
+performance:
+  # RTX 4060 8GB 최적화
+  max_concurrent_requests: 20    # 동시 처리 요청 수 증가
+  request_timeout: 120           # 요청 타임아웃 (초)
+  batch_size: 8                  # 기본 배치 크기
+  enable_streaming: true         # 스트리밍 응답 지원
+  
+  # SGLang 동적 배치 설정
+  dynamic_batching: true         # 동적 배치 활성화
+  batch_expansion_factor: 2.0    # 배치 확장 인수
+  
+  # KV 캐시 관리
+  kv_cache_capacity: 0.8         # KV 캐시 용량 (80%)
+  prefix_cache_max_size: 1000    # 프리픽스 캐시 최대 크기
+  
+# 보안 설정  
+security:
+  enable_cors: true
+  allowed_origins: ["*"]          # 프로덕션에서는 제한 필요
+  api_key_required: false         # API 키 필수 여부
+  rate_limit_by_ip: false         # IP 기반 제한 여부
+  
+  # SGLang 보안 설정
+  disable_custom_all_reduce: true # 보안 강화
+  trust_remote_code: false        # 프로덕션에서는 false 권장
+
+# 한국어 모델별 설정
+models:
+  # Qwen2.5 한국어 모델 (권장)
+  qwen_3b:
+    model_path: "Qwen/Qwen2.5-3B-Instruct"
+    max_model_len: 8192
+    mem_fraction: 0.7
+    description: "경량 고성능 한국어 모델"
+    
+  # Llama 3 한국어 모델
+  llama_ko_8b:
+    model_path: "beomi/Llama-3-Open-Ko-8B"
+    max_model_len: 4096
+    mem_fraction: 0.8
+    description: "한국어 특화 Llama 모델"
+    
+  # SOLAR 한국어 모델
+  solar_ko:
+    model_path: "upstage/SOLAR-10.7B-Instruct-v1.0"
+    max_model_len: 4096
+    mem_fraction: 0.85
+    description: "고품질 한국어 모델"
+
+# 실험적 기능
+experimental:
+  enable_speculative_decoding: false  # 추론 디코딩 (실험적)
+  enable_attention_sink: false        # Attention sink (실험적)
+  enable_quantization: false          # 실시간 양자화 (실험적)
+
+# 개발/디버깅 설정
+development:
+  enable_debug_mode: false
+  log_sglang_requests: false     # SGLang 요청 로깅
+  log_token_usage: true          # 토큰 사용량 로깅
+  enable_profiling: false        # 성능 프로파일링
+  
+# 알림 설정
+notifications:
+  # SGLang 서버 상태 알림
+  sglang_disconnected:
+    enabled: true
+    message: "SGLang 서버 연결이 끊어졌습니다"
+    
+  # 성능 임계값 알림
+  high_latency:
+    enabled: true
+    threshold_ms: 5000
+    message: "응답 지연시간이 임계값을 초과했습니다"
+    
+  # 메모리 사용량 알림
+  high_memory:
+    enabled: true
+    threshold_percent: 90
+    message: "GPU 메모리 사용량이 90%를 초과했습니다"
+
+# 백업 및 복구 설정
+backup:
+  enabled: true
+  interval: "6h"  # 6시간마다 백업
+  retention_days: 7  # 7일간 보관
+  backup_path: "./backups/sglang"
+  include_model_cache: false  # 모델 캐시는 제외
+
+# 성능 모니터링 임계값
+performance_thresholds:
+  max_response_time: 3.0      # 초 (SGLang 최적화로 단축)
+  max_queue_size: 50          # 대기열 크기
+  max_memory_usage: 85        # 퍼센트
+  max_error_rate: 3           # 퍼센트 (SGLang 안정성으로 감소)
+  min_throughput: 100         # 토큰/초
+
+# 한국어 메시지 템플릿
+messages:
+  rate_limit_exceeded: "사용량 제한을 초과했습니다. {cooldown_minutes}분 후 다시 시도해주세요."
+  cooldown_active: "현재 쿨다운 중입니다. {remaining_seconds}초 후 다시 시도해주세요."
+  quota_exceeded: "일일 사용량 한도를 초과했습니다."
+  server_error: "SGLang 서버 오류가 발생했습니다. 관리자에게 문의하세요."
+  invalid_request: "잘못된 요청입니다."
+  unauthorized: "인증되지 않은 사용자입니다."
+  sglang_disconnected: "SGLang 서버와 연결할 수 없습니다."
+  
+# 한국어 응답 품질 설정
+response_quality:
+  temperature_range: [0.1, 1.0]    # 온도 범위
+  max_tokens_range: [10, 2048]     # 최대 토큰 범위
+  top_p_range: [0.1, 1.0]         # Top-p 범위
+  frequency_penalty_range: [0.0, 2.0]  # 빈도 패널티 범위
+  
+  # 한국어 특화 설정
+  korean_optimized_temperature: 0.7  # 한국어 최적 온도
+  korean_max_tokens: 1024           # 한국어 권장 최대 토큰
+  korean_stop_sequences: ["인간:", "사용자:", "Human:", "User:"]  # 한국어 정지 시퀀스
