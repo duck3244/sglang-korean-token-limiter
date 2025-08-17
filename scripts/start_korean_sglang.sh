@@ -611,6 +611,7 @@ echo ""
 echo -e "${GREEN}🎉 SGLang 서버 명령어 옵션 수정 완료!${NC}"
 echo "=============================================="
 
+
 echo -e "${BLUE}🎯 수정 내용:${NC}"
 echo "✅ kv-cache-dtype을 fp16에서 auto로 변경"
 echo "✅ RTX 4060에 최적화된 설정 적용"
